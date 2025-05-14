@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #cc0000;
+            font-weight: bold;
+        }
+
+        .icon-youtube {
+            color: #cc0000;
+            margin-right: 10px;
+        }
+
+        .form-control:focus {
+            border-color: #cc0000;
+            box-shadow: 0 0 0 0.2rem rgba(204, 0, 0, 0.25);
+        }
+
+        .btn-primary {
+            background-color: #cc0000;
+            border-color: #cc0000;
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background-color: #990000;
+            border-color: #990000;
+        }
+
+        #videoPreview {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .video-info {
+            margin-top: 15px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .format-selector {
+            margin-top: 10px;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .download-btn {
+            margin-top: 10px;
+        }
+
+        .video-thumbnail {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="fab fa-youtube icon-youtube"></i>YouTube Video Downloader</h1>
+            <p class="lead">Nhập link YouTube và tải video hoặc audio</p>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form id="downloadForm">
+                    <div class="mb-3">
+                        <label for="videoUrl" class="form-label">URL Video YouTube</label>
+                        <input type="text" class="form-control" id="videoUrl"
+                            placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+
+                    <div class="format-selector">
+                        <label class="form-label">Định dạng tải xuống</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="formatType" id="formatVideo"
+                                value="video" checked>
+                            <label class="form-check-label" for="formatVideo">
+                                <i class="fas fa-video"></i> Video (MP4)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="formatType" id="formatAudio"
+                                value="audio">
+                            <label class="form-check-label" for="formatAudio">
+                                <i class="fas fa-music"></i> Audio (MP3)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-primary" id="processBtn">
+                            <i class="fas fa-download"></i> Tải Video
+                        </button>
+                    </div>
+                </form>
+
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-danger" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Đang xử lý video, vui lòng đợi...</p>
+                </div>
+
+                <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;"></div>
+
+                <div id="videoPreview" class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <img id="videoThumbnail" class="video-thumbnail" src="" alt="Video Thumbnail">
+                            </div>
+                            <div class="col-md-7">
+                                <div class="video-info">
+                                    <h5 id="videoTitle"></h5>
+                                    <p id="channelName" class="text-muted"></p>
+                                    <p id="videoDuration"></p>
+                                    <div class="download-section">
+                                        <p id="downloadReady" class="text-success"><i class="fas fa-check-circle"></i>
+                                            Sẵn sàng tải xuống</p>
+                                        <a id="downloadLink" href="#" class="btn btn-success download-btn" download>
+                                            <i class="fas fa-download"></i> <span id="downloadText">Tải xuống</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const downloadForm = document.getElementById('downloadForm');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const videoPreview = document.getElementById('videoPreview');
+            const errorAlert = document.getElementById('errorAlert');
+            const videoUrl = document.getElementById('videoUrl');
+            const videoThumbnail = document.getElementById('videoThumbnail');
+            const videoTitle = document.getElementById('videoTitle');
+            const channelName = document.getElementById('channelName');
+            const videoDuration = document.getElementById('videoDuration');
+            const downloadLink = document.getElementById('downloadLink');
+            const downloadText = document.getElementById('downloadText');
+
+            function formatDuration(seconds) {
+                if (!seconds) return 'Unknown duration';
+                const hrs = Math.floor(seconds / 3600);
+                const mins = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+
+                let result = '';
+                if (hrs > 0) {
+                    result += `${hrs}:`;
+                }
+                result += `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                return result;
+            }
+
+            downloadForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const url = videoUrl.value.trim();
+                if (!url) {
+                    showError('Vui lòng nhập URL YouTube hợp lệ');
+                    return;
+                }
+
+                // Hide any previous results and errors
+                videoPreview.style.display = 'none';
+                errorAlert.style.display = 'none';
+                loadingSpinner.style.display = 'block';
+
+                // Get selected format
+                const formatType = document.querySelector('input[name="formatType"]:checked').value;
+
+                // Make API request to download the video
+                fetch('/download/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        video_url: url,
+                        format_type: formatType
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingSpinner.style.display = 'none';
+
+                        if (data.error) {
+                            showError(data.error);
+                            return;
+                        }
+
+                        // Display video information
+                        videoThumbnail.src = data.video_info.thumbnail || '';
+                        videoTitle.textContent = data.video_info.title;
+                        channelName.textContent = `Channel: ${data.video_info.channel || 'Unknown'}`;
+                        videoDuration.textContent = `Duration: ${formatDuration(data.video_info.duration)}`;
+
+                        // Set download link and format-specific text
+                        downloadLink.href = data.download_url;
+                        downloadLink.setAttribute('download', data.filename);
+                        downloadText.textContent = `Tải xuống ${data.format === 'audio' ? 'MP3' : 'MP4'}`;
+
+                        // Show the video preview
+                        videoPreview.style.display = 'block';
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';
+                        showError('Có lỗi xảy ra khi xử lý video. Vui lòng thử lại!');
+                        console.error('Error:', error);
+                    });
+            });
+
+            function showError(message) {
+                errorAlert.textContent = message;
+                errorAlert.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>
